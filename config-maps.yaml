@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: configMap-backend
+data:
+  db-port: "87"
+  api-port: "4242"
+  host: db-service
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: configMap-test
+data:
+  key1: value1
+  key2: value2
+  key3: value3

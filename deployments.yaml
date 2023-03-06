@@ -1,0 +1,152 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  labels:
+    app: myapp
+    tier: database
+spec:
+  selector:
+    matchLabels:
+      app: myapp
+      tier: database
+  template:
+    replicas: 2
+    metadata:
+      name: mongodb
+      labels:
+        app: myapp
+        tier: database
+    spec:
+      containers:
+        - name: database
+          image: lovelyfossil/mongo-server
+          resources:
+            limits:
+              cpu: 1
+              memory: 100Mi
+          volumeMounts:
+            - name: volume
+              mountPath: "/db/data"
+          ports:
+          - containerPort: 27017
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: my-secret
+                  key: user
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: my-secret
+                  key: password
+      volumes:
+        - name: volume
+          persistentVolumeClaim:
+            claimName: my-claim
+        - name: configMap
+          configMap:
+            name: configMap-test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: express
+  labels:
+    app: myapp
+    tier: backend
+spec:
+  selector:
+    matchLabels:
+      app: myapp
+      tier: backend
+  template:
+    replicas: 2
+    metadata:
+      name: express
+      labels:
+        app: myapp
+        tier: backend
+    spec:
+      containers:
+        - name: backend
+          image: lovelyfossil/api-server:kube
+          resources:
+            limits:
+              cpu: 1
+              memory: 100Mi
+          ports:
+            - containerPort: 4242
+          env:
+            - name: MONGO_USER
+              valueFrom:
+                secretKeyRef:
+                  name: my-secret
+                  key: user
+            - name: MONGO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: my-secret
+                  key: password
+            - name: MONGO_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: configMap-backend
+                  key: host
+            - name: MONGO_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: configMap-backend
+                  key: db-port
+            - name: API_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: configMap-backend
+                  key: api-port
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 4242
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+            periodSeconds: 45
+          readinessProbe:
+            httpGet:
+              path: /api/notes
+              port: 4242
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+            periodSeconds: 45
+          serviceAccountName: my-service-account
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: react
+  labels:
+    app: myapp
+    tier: frontend
+spec:
+  selector:
+    matchLabels:
+      app: myapp
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        app: myapp
+        tier: frontend
+    spec:
+      containers:
+      - name: myapp
+        image: lovelyfossil/react-app
+        resources:
+          limits:
+            memory: 128Mi
+            cpu: 500m
+        ports:
+        - containerPort: 3000
+        env:
+          - name: REACT_APP_API_URL
+            value: http://backend-service:4242

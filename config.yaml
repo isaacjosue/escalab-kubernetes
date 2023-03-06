@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Config
+
+users:
+- name: test
+
+contexts:
+- context:
+    cluster: microk8s-cluster
+    namespace: my-namespace
+    user: test
+  name: my-context
