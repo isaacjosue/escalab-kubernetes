@@ -31,7 +31,7 @@ metadata:
   namespace: my-namespace
 spec:
   hard:
-    pods: 15
+    pods: 14
     secrets: 1
     configmaps: 2
     services: 3

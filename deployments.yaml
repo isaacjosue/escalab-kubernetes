@@ -2,16 +2,17 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mongodb
+  namespace: my-namespace
   labels:
     app: myapp
     tier: database
 spec:
+  replicas: 2
   selector:
     matchLabels:
       app: myapp
       tier: database
   template:
-    replicas: 2
     metadata:
       name: mongodb
       labels:
@@ -45,24 +46,22 @@ spec:
         - name: volume
           persistentVolumeClaim:
             claimName: my-claim
-        - name: configMap
-          configMap:
-            name: configMap-test
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: express
+  namespace: my-namespace
   labels:
     app: myapp
     tier: backend
 spec:
+  replicas: 2
   selector:
     matchLabels:
       app: myapp
       tier: backend
   template:
-    replicas: 2
     metadata:
       name: express
       labels:
@@ -107,14 +106,14 @@ spec:
           livenessProbe:
             httpGet:
               path: /
-              port: 4242
+              port: ${API_PORT}
             initialDelaySeconds: 30
             timeoutSeconds: 30
             periodSeconds: 45
           readinessProbe:
             httpGet:
               path: /api/notes
-              port: 4242
+              port: ${API_PORT}
             initialDelaySeconds: 30
             timeoutSeconds: 30
             periodSeconds: 45
@@ -124,10 +123,12 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: react
+  namespace: my-namespace
   labels:
     app: myapp
     tier: frontend
 spec:
+  replicas: 2
   selector:
     matchLabels:
       app: myapp
@@ -149,4 +150,7 @@ spec:
         - containerPort: 3000
         env:
           - name: REACT_APP_API_URL
-            value: http://backend-service:4242
+            valueFrom:
+              configMapKeyRef:
+                name: configMap-frontend
+                key: api-url
